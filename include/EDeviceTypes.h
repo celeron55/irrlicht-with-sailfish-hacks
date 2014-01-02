@@ -62,6 +62,9 @@ namespace irr
 		Does not need X11 or other graphical subsystems.
 		May support hw-acceleration via OpenGL-ES */
 		EIDT_ANDROID,		
+
+		//! A device which uses Simple DirectMedia Layer version 2
+		EIDT_SDL2,
 	};
 
 } // end namespace irr

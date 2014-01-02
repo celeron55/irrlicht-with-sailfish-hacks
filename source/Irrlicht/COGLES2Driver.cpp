@@ -31,6 +31,8 @@
 #endif
 #endif
 
+#include "IContextManager.h"
+
 namespace irr
 {
 namespace video
@@ -38,7 +40,7 @@ namespace video
 
 COGLES2Driver::COGLES2Driver(const SIrrlichtCreationParameters& params,
 			io::IFileSystem* io
-#if defined(_IRR_COMPILE_WITH_X11_DEVICE_) || defined(_IRR_WINDOWS_API_) || defined(_IRR_COMPILE_WITH_ANDROID_DEVICE_)
+#if defined(_IRR_COMPILE_WITH_X11_DEVICE_) || defined(_IRR_WINDOWS_API_) || defined(_IRR_COMPILE_WITH_ANDROID_DEVICE_) || defined(_IRR_COMPILE_WITH_SDL2_DEVICE_)
             , IContextManager* contextManager
 #elif defined(_IRR_COMPILE_WITH_IPHONE_DEVICE_)
             , CIrrDeviceIPhone* device
@@ -47,7 +49,7 @@ COGLES2Driver::COGLES2Driver(const SIrrlichtCreationParameters& params,
 	BridgeCalls(0), CurrentRenderMode(ERM_NONE), ResetRenderStates(true),
 	Transformation3DChanged(true), AntiAlias(params.AntiAlias),
 	RenderTargetTexture(0), CurrentRendertargetSize(0, 0), ColorFormat(ECF_R8G8B8)
-#if defined(_IRR_COMPILE_WITH_X11_DEVICE_) || defined(_IRR_WINDOWS_API_) || defined(_IRR_COMPILE_WITH_ANDROID_DEVICE_)
+#if defined(_IRR_COMPILE_WITH_X11_DEVICE_) || defined(_IRR_WINDOWS_API_) || defined(_IRR_COMPILE_WITH_ANDROID_DEVICE_) || defined(_IRR_COMPILE_WITH_SDL2_DEVICE_)
     , ContextManager(contextManager)
 #elif defined(_IRR_COMPILE_WITH_IPHONE_DEVICE_)
     , Device(device), ViewFramebuffer(0),
@@ -60,7 +62,7 @@ COGLES2Driver::COGLES2Driver(const SIrrlichtCreationParameters& params,
 
     core::dimension2d<u32> WindowSize(0, 0);
 
-#if defined(_IRR_COMPILE_WITH_X11_DEVICE_) || defined(_IRR_WINDOWS_API_) || defined(_IRR_COMPILE_WITH_ANDROID_DEVICE_)
+#if defined(_IRR_COMPILE_WITH_X11_DEVICE_) || defined(_IRR_WINDOWS_API_) || defined(_IRR_COMPILE_WITH_ANDROID_DEVICE_) || defined(_IRR_COMPILE_WITH_SDL2_DEVICE_)
 	if (!ContextManager)
 		return;
 
@@ -115,7 +117,7 @@ COGLES2Driver::~COGLES2Driver()
 
 	delete BridgeCalls;
 
-#if defined(_IRR_COMPILE_WITH_X11_DEVICE_) || defined(_IRR_WINDOWS_API_) || defined(_IRR_COMPILE_WITH_ANDROID_DEVICE_)
+#if defined(_IRR_COMPILE_WITH_X11_DEVICE_) || defined(_IRR_WINDOWS_API_) || defined(_IRR_COMPILE_WITH_ANDROID_DEVICE_) || defined(_IRR_COMPILE_WITH_SDL2_DEVICE_)
 	if (ContextManager)
 	{
 		ContextManager->destroyContext();
@@ -230,6 +232,12 @@ COGLES2Driver::~COGLES2Driver()
 
 		io::IReadFile* FPVSFile = FileSystem->createAndOpenFile(FPVSPath);
 		io::IReadFile* FPFSFile = FileSystem->createAndOpenFile(FPFSPath);
+
+		if(!FPVSFile || !FPVSFile){
+			os::Printer::log((core::stringc()+"Failed to open shader files ["+
+					FPVSPath+"] ["+FPFSPath+"]").c_str(), ELL_ERROR);
+			return;
+		}
 
 		c8* FPVSData = 0;
 		c8* FPFSData = 0;
@@ -436,7 +444,7 @@ bool COGLES2Driver::endScene()
 {
 	CNullDriver::endScene();
 
-#if defined(_IRR_COMPILE_WITH_X11_DEVICE_) || defined(_IRR_WINDOWS_API_) || defined(_IRR_COMPILE_WITH_ANDROID_DEVICE_)
+#if defined(_IRR_COMPILE_WITH_X11_DEVICE_) || defined(_IRR_WINDOWS_API_) || defined(_IRR_COMPILE_WITH_ANDROID_DEVICE_) || defined(_IRR_COMPILE_WITH_SDL2_DEVICE_)
     if (ContextManager)
 		ContextManager->swapBuffers();
 #elif defined(_IRR_COMPILE_WITH_IPHONE_DEVICE_)
@@ -1858,7 +1866,8 @@ bool COGLES2Driver::endScene()
 		for (s32 i = MaxTextureUnits-1; i>= 0; --i)
 		{
 			const COGLES2Texture* tmpTexture = static_cast<const COGLES2Texture*>(CurrentTexture[i]);
-			GLenum tmpTextureType = (tmpTexture) ? tmpTexture->getOpenGLTextureType() : GL_TEXTURE_2D;
+			//GLenum tmpTextureType = (tmpTexture) ? tmpTexture->getOpenGLTextureType() : GL_TEXTURE_2D;
+			GLenum tmpTextureType = GL_TEXTURE_2D; // ES2 doesn't seem to support all OpenGL texture types (HACK)
 
 			if (CurrentTexture[i])
 				BridgeCalls->setTexture(i, tmpTextureType);
@@ -2902,7 +2911,7 @@ class IContextManager;
 
 IVideoDriver* createOGLES2Driver(const SIrrlichtCreationParameters& params,
 		io::IFileSystem* io
-#if defined(_IRR_COMPILE_WITH_X11_DEVICE_) || defined(_IRR_WINDOWS_API_) || defined(_IRR_COMPILE_WITH_ANDROID_DEVICE_)
+#if defined(_IRR_COMPILE_WITH_X11_DEVICE_) || defined(_IRR_WINDOWS_API_) || defined(_IRR_COMPILE_WITH_ANDROID_DEVICE_) || defined(_IRR_COMPILE_WITH_SDL2_DEVICE_)
         , IContextManager* contextManager
 #elif defined(_IRR_COMPILE_WITH_IPHONE_DEVICE_)
         , CIrrDeviceIPhone* device
@@ -2911,7 +2920,7 @@ IVideoDriver* createOGLES2Driver(const SIrrlichtCreationParameters& params,
 {
 #ifdef _IRR_COMPILE_WITH_OGLES2_
 	return new COGLES2Driver(params, io
-#if defined(_IRR_COMPILE_WITH_X11_DEVICE_) || defined(_IRR_WINDOWS_API_) || defined(_IRR_COMPILE_WITH_ANDROID_DEVICE_)
+#if defined(_IRR_COMPILE_WITH_X11_DEVICE_) || defined(_IRR_WINDOWS_API_) || defined(_IRR_COMPILE_WITH_ANDROID_DEVICE_) || defined(_IRR_COMPILE_WITH_SDL2_DEVICE_)
         , contextManager
 #elif defined(_IRR_COMPILE_WITH_IPHONE_DEVICE_)
         , device

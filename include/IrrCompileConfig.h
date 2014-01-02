@@ -113,6 +113,14 @@
 #define _IRR_COMPILE_ANDROID_ASSET_READER_
 #endif
 
+#if defined(_IRR_SAILFISH_PLATFORM_)
+#define _IRR_POSIX_API_
+#define NO_IRR_COMPILE_WITH_OGLES1_
+#define _IRR_COMPILE_WITH_OGLES2_
+#define _IRR_COMPILE_WITH_SDL2_DEVICE_
+#define NO_IRR_COMPILE_WITH_X11_
+#endif
+
 #if defined(__SVR4) && defined(__sun)
 #define _IRR_SOLARIS_PLATFORM_
 #if defined(__sparc)
@@ -120,7 +128,7 @@
 #endif
 #endif
 
-#if !defined(_IRR_WINDOWS_API_) && !defined(_IRR_OSX_PLATFORM_) && !defined(_IRR_ANDROID_PLATFORM_)
+#if !defined(_IRR_WINDOWS_API_) && !defined(_IRR_OSX_PLATFORM_) && !defined(_IRR_ANDROID_PLATFORM_) && !defined(_IRR_SAILFISH_PLATFORM_)
 #ifndef _IRR_SOLARIS_PLATFORM_
 #define _IRR_LINUX_PLATFORM_
 #endif
