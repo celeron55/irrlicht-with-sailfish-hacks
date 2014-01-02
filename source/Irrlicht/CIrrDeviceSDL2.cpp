@@ -377,6 +377,7 @@ bool CIrrDeviceSDL2::run()
 					break;
 				}
 				int i = 0;
+				irrevent.MultiTouchInput.PointerCount = 1;
 				irrevent.MultiTouchInput.PrevX[i] = sdlevent.tfinger.x - sdlevent.tfinger.dx;
 				irrevent.MultiTouchInput.PrevY[i] = sdlevent.tfinger.y - sdlevent.tfinger.dy;
 				irrevent.MultiTouchInput.X[i] = sdlevent.tfinger.x;
