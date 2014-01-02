@@ -346,11 +346,11 @@ bool CIrrDeviceSDL2::run()
 	os::Timer::tick();
 
 	SEvent irrevent;
-	SDL_Event SDL_event;
+	SDL_Event sdlevent;
 
-	while ( !Close && SDL_PollEvent( &SDL_event ) )
+	while ( !Close && SDL_PollEvent( &sdlevent ) )
 	{
-		switch ( SDL_event.type )
+		switch ( sdlevent.type )
 		{
 		case SDL_FINGERDOWN:
 		case SDL_FINGERUP:
@@ -360,7 +360,7 @@ bool CIrrDeviceSDL2::run()
 				irrevent.EventType = EET_MULTI_TOUCH_EVENT;
 				irrevent.MultiTouchInput.clear();
 				bool Touched = false;
-				switch (SDL_event.type)
+				switch (sdlevent.type)
 				{
 				case SDL_FINGERDOWN:
 					irrevent.MultiTouchInput.Event = EMTIE_PRESSED_DOWN;
@@ -377,16 +377,18 @@ bool CIrrDeviceSDL2::run()
 					break;
 				}
 				int i = 0;
-				irrevent.MultiTouchInput.PrevX[i] = 0; // TODO
-				irrevent.MultiTouchInput.PrevY[i] = 0; // TODO
-				irrevent.MultiTouchInput.X[i] = SDL_event.tfinger.x;
-				irrevent.MultiTouchInput.Y[i] = SDL_event.tfinger.y;
+				irrevent.MultiTouchInput.PrevX[i] = sdlevent.tfinger.x - sdlevent.tfinger.dx;
+				irrevent.MultiTouchInput.PrevY[i] = sdlevent.tfinger.y - sdlevent.tfinger.dy;
+				irrevent.MultiTouchInput.X[i] = sdlevent.tfinger.x;
+				irrevent.MultiTouchInput.Y[i] = sdlevent.tfinger.y;
 				irrevent.MultiTouchInput.Touched[i] = Touched;
+				// Note: There's also sdlevent.tfinger.touchId (device id)
+				irrevent.MultiTouchInput.ID[i] = sdlevent.tfinger.fingerId;
 				postEventFromUser(irrevent);
 
 				irrevent = SEvent(); // clear
 				irrevent.EventType = irr::EET_MOUSE_INPUT_EVENT;
-				switch (SDL_event.type)
+				switch (sdlevent.type)
 				{
 				case SDL_FINGERDOWN:
 					irrevent.MouseInput.Event = irr::EMIE_LMOUSE_PRESSED_DOWN;
@@ -402,9 +404,12 @@ bool CIrrDeviceSDL2::run()
 				default:
 					break;
 				}
-				MouseX = irrevent.MouseInput.X = SDL_event.tfinger.x;
-				MouseY = irrevent.MouseInput.Y = SDL_event.tfinger.y;
+				irrevent.MouseInput.X = sdlevent.tfinger.x;
+				irrevent.MouseInput.Y = sdlevent.tfinger.y;
 				postEventFromUser(irrevent);
+
+				MouseX = sdlevent.tfinger.x;
+				MouseY = sdlevent.tfinger.y;
 			}
 
 			SDL_StartTextInput(); // Test
@@ -413,8 +418,8 @@ bool CIrrDeviceSDL2::run()
 		case SDL_MOUSEMOTION:
 			irrevent.EventType = irr::EET_MOUSE_INPUT_EVENT;
 			irrevent.MouseInput.Event = irr::EMIE_MOUSE_MOVED;
-			MouseX = irrevent.MouseInput.X = SDL_event.motion.x;
-			MouseY = irrevent.MouseInput.Y = SDL_event.motion.y;
+			MouseX = irrevent.MouseInput.X = sdlevent.motion.x;
+			MouseY = irrevent.MouseInput.Y = sdlevent.motion.y;
 			irrevent.MouseInput.ButtonStates = MouseButtonStates;
 
 			postEventFromUser(irrevent);
@@ -424,15 +429,15 @@ bool CIrrDeviceSDL2::run()
 		case SDL_MOUSEBUTTONUP:
 
 			irrevent.EventType = irr::EET_MOUSE_INPUT_EVENT;
-			irrevent.MouseInput.X = SDL_event.button.x;
-			irrevent.MouseInput.Y = SDL_event.button.y;
+			irrevent.MouseInput.X = sdlevent.button.x;
+			irrevent.MouseInput.Y = sdlevent.button.y;
 
 			irrevent.MouseInput.Event = irr::EMIE_MOUSE_MOVED;
 
-			switch(SDL_event.button.button)
+			switch(sdlevent.button.button)
 			{
 			case SDL_BUTTON_LEFT:
-				if (SDL_event.type == SDL_MOUSEBUTTONDOWN)
+				if (sdlevent.type == SDL_MOUSEBUTTONDOWN)
 				{
 					irrevent.MouseInput.Event = irr::EMIE_LMOUSE_PRESSED_DOWN;
 					MouseButtonStates |= irr::EMBSM_LEFT;
@@ -445,7 +450,7 @@ bool CIrrDeviceSDL2::run()
 				break;
 
 			case SDL_BUTTON_RIGHT:
-				if (SDL_event.type == SDL_MOUSEBUTTONDOWN)
+				if (sdlevent.type == SDL_MOUSEBUTTONDOWN)
 				{
 					irrevent.MouseInput.Event = irr::EMIE_RMOUSE_PRESSED_DOWN;
 					MouseButtonStates |= irr::EMBSM_RIGHT;
@@ -458,7 +463,7 @@ bool CIrrDeviceSDL2::run()
 				break;
 
 			case SDL_BUTTON_MIDDLE:
-				if (SDL_event.type == SDL_MOUSEBUTTONDOWN)
+				if (sdlevent.type == SDL_MOUSEBUTTONDOWN)
 				{
 					irrevent.MouseInput.Event = irr::EMIE_MMOUSE_PRESSED_DOWN;
 					MouseButtonStates |= irr::EMBSM_MIDDLE;
@@ -509,7 +514,7 @@ bool CIrrDeviceSDL2::run()
 		case SDL_KEYUP:
 			{
 				SKeyMap mp;
-				mp.SDLKey = SDL_event.key.keysym.sym;
+				mp.SDLKey = sdlevent.key.keysym.sym;
 				s32 idx = KeyMap.binary_search(mp);
 
 				EKEY_CODE key;
@@ -520,18 +525,18 @@ bool CIrrDeviceSDL2::run()
 
 #ifdef _IRR_WINDOWS_API_
 				// handle alt+f4 in Windows, because SDL seems not to
-				if ( (SDL_event.key.keysym.mod & KMOD_LALT) && key == KEY_F4)
+				if ( (sdlevent.key.keysym.mod & KMOD_LALT) && key == KEY_F4)
 				{
 					Close = true;
 					break;
 				}
 #endif
 				irrevent.EventType = irr::EET_KEY_INPUT_EVENT;
-				irrevent.KeyInput.Char = SDL_event.key.keysym.unicode;
+				irrevent.KeyInput.Char = sdlevent.key.keysym.unicode;
 				irrevent.KeyInput.Key = key;
-				irrevent.KeyInput.PressedDown = (SDL_event.type == SDL_KEYDOWN);
-				irrevent.KeyInput.Shift = (SDL_event.key.keysym.mod & KMOD_SHIFT) != 0;
-				irrevent.KeyInput.Control = (SDL_event.key.keysym.mod & KMOD_CTRL ) != 0;
+				irrevent.KeyInput.PressedDown = (sdlevent.type == SDL_KEYDOWN);
+				irrevent.KeyInput.Shift = (sdlevent.key.keysym.mod & KMOD_SHIFT) != 0;
+				irrevent.KeyInput.Control = (sdlevent.key.keysym.mod & KMOD_CTRL ) != 0;
 				postEventFromUser(irrevent);
 			}
 			break;
@@ -541,7 +546,7 @@ bool CIrrDeviceSDL2::run()
 			break;
 
 		case SDL_WINDOWEVENT:
-			switch (SDL_event.window.event) {
+			switch (sdlevent.window.event) {
 			case SDL_WINDOWEVENT_SHOWN:
 				WindowMinimized = false;
 				break;
@@ -554,8 +559,8 @@ bool CIrrDeviceSDL2::run()
 				break;
 			case SDL_WINDOWEVENT_RESIZED:
 				// NOTE: Can be other window
-				Width = SDL_event.window.data1;
-				Height = SDL_event.window.data2;
+				Width = sdlevent.window.data1;
+				Height = sdlevent.window.data2;
 				// TODO: Is this needed?
 				//Sdl2Window = createSDL2Window( Width, Height, 0, SDL_Flags );
 				if (VideoDriver)
@@ -589,8 +594,8 @@ bool CIrrDeviceSDL2::run()
 
 		case SDL_USEREVENT:
 			irrevent.EventType = irr::EET_USER_EVENT;
-			irrevent.UserEvent.UserData1 = *(reinterpret_cast<s32*>(&SDL_event.user.data1));
-			irrevent.UserEvent.UserData2 = *(reinterpret_cast<s32*>(&SDL_event.user.data2));
+			irrevent.UserEvent.UserData1 = *(reinterpret_cast<s32*>(&sdlevent.user.data1));
+			irrevent.UserEvent.UserData2 = *(reinterpret_cast<s32*>(&sdlevent.user.data2));
 
 			postEventFromUser(irrevent);
 			break;
