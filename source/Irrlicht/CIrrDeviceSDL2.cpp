@@ -43,6 +43,11 @@ namespace irr
 				io::IFileSystem* io, CIrrDeviceSDL2* device);
 		#endif
 
+        #ifdef _IRR_COMPILE_WITH_OGLES1_
+		IVideoDriver* createOGLES1Driver(const SIrrlichtCreationParameters& params,
+			io::IFileSystem* io, video::IContextManager* contextManager);
+        #endif
+
         #ifdef _IRR_COMPILE_WITH_OGLES2_ 	 
         //IVideoDriver* createOGLES2Driver(const SIrrlichtCreationParameters& params, video::SExposedVideoData& data, io::IFileSystem* io);
         IVideoDriver* createOGLES2Driver(const SIrrlichtCreationParameters& params, io::IFileSystem* io, IContextManager* contextManager);
@@ -70,7 +75,7 @@ CIrrDeviceSDL2::CIrrDeviceSDL2(const SIrrlichtCreationParameters& param)
 	// Initialize SDL... Timer for sleep, video for the obvious, and
 	// noparachute prevents SDL from catching fatal errors.
 	if (SDL_Init( SDL_INIT_TIMER|SDL_INIT_VIDEO|
-#if defined(_IRR_COMPILE_WITH_JOYSTICK_EVENTS_)
+#if 0 && defined(_IRR_COMPILE_WITH_JOYSTICK_EVENTS_)
 				SDL_INIT_JOYSTICK|
 #endif
 				SDL_INIT_NOPARACHUTE ) < 0)
@@ -144,7 +149,7 @@ CIrrDeviceSDL2::CIrrDeviceSDL2(const SIrrlichtCreationParameters& param)
 //! destructor
 CIrrDeviceSDL2::~CIrrDeviceSDL2()
 {
-#if defined(_IRR_COMPILE_WITH_JOYSTICK_EVENTS_)
+#if 0 && defined(_IRR_COMPILE_WITH_JOYSTICK_EVENTS_)
 	const u32 numJoysticks = Joysticks.size();
 	for (u32 i=0; i<numJoysticks; ++i)
 		SDL_JoystickClose(Joysticks[i]);
@@ -281,6 +286,53 @@ void CIrrDeviceSDL2::createDriver()
 		os::Printer::log("No OpenGL support compiled in.", ELL_ERROR);
 		#endif
 		break;
+
+    case video::EDT_OGLES1: 	 
+        #ifdef _IRR_COMPILE_WITH_OGLES1_
+        {
+            video::SExposedVideoData data;
+			switch(Info.subsystem){
+			case SDL_SYSWM_X11:
+				os::Printer::log("Subsystem for sdl2/ogles: X11", ELL_INFORMATION);
+			#if defined(SDL_VIDEO_DRIVER_X11)
+				data.OpenGLLinux.X11Window = Info.info.x11.window; // Should be wl_egl_window
+				data.OpenGLLinux.X11Display = Info.info.x11.display;
+			#else
+				os::Printer::log("Subsystem for sdl2/ogles: X11: not supported", ELL_ERROR);
+			#endif
+				break;
+			case SDL_SYSWM_WAYLAND: {
+				os::Printer::log("Subsystem for sdl2/ogles: Wayland", ELL_INFORMATION);
+			#if defined(SDL_VIDEO_DRIVER_WAYLAND)
+				void *egl_window = wl_egl_window_create(Info.info.wl.surface, Width, Height);
+				if(!egl_window){
+					os::Printer::log("Wayland: Failed to create EGL window", ELL_ERROR);
+					Close = true;
+					return;
+				}
+				//data.OpenGLLinux.X11Window = (long unsigned int)Info.info.wl.surface; // Should be wl_egl_window
+				data.OpenGLLinux.X11Window = (long unsigned int)egl_window;
+				data.OpenGLLinux.X11Display = Info.info.wl.display;
+			#else
+				os::Printer::log("Subsystem for sdl2/ogles: Wayland: not supported", ELL_ERROR);
+			#endif
+				break; }
+			case SDL_SYSWM_UNKNOWN:
+				os::Printer::log("Subsystem for sdl2/ogles: SDL reports unknown: "
+						"not supported", ELL_ERROR);
+				break;
+			default:
+				os::Printer::log("Subsystem for sdl2/ogles: Unimplemented",
+						ELL_INFORMATION);
+			}
+            ContextManager = new video::CEGLManager();
+			ContextManager->initialize(CreationParams, data);
+            VideoDriver = video::createOGLES1Driver(CreationParams, FileSystem, ContextManager);
+        }
+        #else
+        os::Printer::log("No OpenGL-ES support compiled in.", ELL_ERROR); 	 
+        #endif 	 
+        break;
 
     case video::EDT_OGLES2: 	 
         #ifdef _IRR_COMPILE_WITH_OGLES2_
