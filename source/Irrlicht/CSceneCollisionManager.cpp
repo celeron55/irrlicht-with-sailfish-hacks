@@ -859,7 +859,11 @@ core::line3d<f32> CSceneCollisionManager::getRayFromScreenCoordinates(
 	core::vector3df uptodown = f->getFarLeftDown() - farLeftUp;
 
 	const core::rect<s32>& viewPort = Driver->getViewPort();
+#ifdef _IRR_LANDSCAPE_HACK_
+	core::dimension2d<u32> screenSize(viewPort.getHeight(), viewPort.getWidth());
+#else
 	core::dimension2d<u32> screenSize(viewPort.getWidth(), viewPort.getHeight());
+#endif
 
 	f32 dx = pos.X / (f32)screenSize.Width;
 	f32 dy = pos.Y / (f32)screenSize.Height;
