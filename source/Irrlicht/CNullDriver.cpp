@@ -899,6 +899,11 @@ ECOLOR_FORMAT CNullDriver::getColorFormat() const
 //! returns screen size
 const core::dimension2d<u32>& CNullDriver::getScreenSize() const
 {
+#ifdef _IRR_LANDSCAPE_HACK_
+	ScreenSizeLandscape.Width = ScreenSize.Height;
+	ScreenSizeLandscape.Height = ScreenSize.Width;
+	return ScreenSizeLandscape;
+#endif
 	return ScreenSize;
 }
 

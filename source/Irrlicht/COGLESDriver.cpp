@@ -50,6 +50,7 @@ COGLES1Driver::COGLES1Driver(const SIrrlichtCreationParameters& params,
 #if defined(_IRR_COMPILE_WITH_X11_DEVICE_) || defined(_IRR_WINDOWS_API_) || defined(_IRR_COMPILE_WITH_ANDROID_DEVICE_) || defined(_IRR_COMPILE_WITH_SDL2_DEVICE_)
 	if (!ContextManager)
 		return;
+	os::Printer::log((core::stringc("ES1: params.WindowSize=")+core::stringc(params.WindowSize.Width)+"x"+core::stringc(params.WindowSize.Height)).c_str(), ELL_INFORMATION);
 
 	ContextManager->grab();
 	ContextManager->generateSurface();
@@ -133,6 +134,7 @@ bool COGLES1Driver::genericDriverInit(const core::dimension2d<u32>& screenSize, 
 {
 	Name=glGetString(GL_VERSION);
 	printVersion();
+	os::Printer::log((core::stringc("COGLES1Driver::genericDriverInit: screenSize=")+core::stringc(screenSize.Width)+"x"+core::stringc(screenSize.Height)).c_str(), ELL_INFORMATION);
 
 	// print renderer information
 	vendorName = glGetString(GL_VENDOR);
@@ -347,6 +349,18 @@ void COGLES1Driver::setTransform(E_TRANSFORMATION_STATE state, const core::matri
 		break;
 	case ETS_PROJECTION:
 		{
+#ifdef _IRR_LANDSCAPE_HACK_
+			// HACK: Turn the thing -90deg from portrait to landscape
+			// NOTE: This isn't optimal because the rotation should happen at
+			// the correct vertical angle in order to not cause distortion when
+			// looking up and down
+			core::matrix4 m;
+			m.setRotationAxisRadians(-M_PI*0.5, core::vector3df(0,0,1));
+			Matrices[ETS_PROJECTION] *= m;
+			m.makeIdentity();
+			m.setScale(core::vector3df(1, 3.16, 1));
+			Matrices[ETS_PROJECTION] *= m;
+#endif
 			GLfloat glmat[16];
 			createGLMatrix(glmat, mat);
 			// flip z to compensate OGLES1s right-hand coordinate system
@@ -2087,7 +2101,24 @@ void COGLES1Driver::setRenderStates2DMode(bool alpha, bool texture, bool alphaCh
 			const core::dimension2d<u32>& renderTargetSize = getCurrentRenderTargetSize();
 			core::matrix4 m;
 			m.buildProjectionMatrixOrthoLH(f32(renderTargetSize.Width), f32(-(s32)(renderTargetSize.Height)), -1.0, 1.0);
+#ifndef _IRR_LANDSCAPE_HACK_
 			m.setTranslation(core::vector3df(-1,1,0));
+#else
+			bool is_screen = (CurrentRendertargetSize.Width == 0);
+			if(!is_screen){
+				m.setTranslation(core::vector3df(-1,1,0));
+			} else {
+				// HACK: Turn the thing 90deg from portrait to landscape
+				//m.setTranslation(core::vector3df(-1.0+((f32)renderTargetSize.Height/(f32)renderTargetSize.Width), 1, 0));
+				// TODO: How to calculate the first value?
+				m.setTranslation(core::vector3df(1, 1, 0));
+				core::matrix4 m2;
+				m2.setRotationAxisRadians(M_PI*0.50, core::vector3df(0,0,1));
+				//m2.setRotationAxisRadians(M_PI*0.49, core::vector3df(0,0,1));
+				m *= m2;
+			}
+#endif
+
 			glLoadMatrixf(m.pointer());
 
 			glMatrixMode(GL_MODELVIEW);

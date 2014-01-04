@@ -828,6 +828,10 @@ namespace video
 
 		core::rect<s32> ViewPort;
 		core::dimension2d<u32> ScreenSize;
+#ifdef _IRR_LANDSCAPE_HACK_
+		// Updated in getScreenSize()
+		mutable core::dimension2d<u32> ScreenSizeLandscape;
+#endif
 		core::matrix4 TransformationMatrix;
 
 		CFPSCounter FPSCounter;

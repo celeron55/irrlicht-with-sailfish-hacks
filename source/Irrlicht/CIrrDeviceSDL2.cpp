@@ -71,6 +71,9 @@ CIrrDeviceSDL2::CIrrDeviceSDL2(const SIrrlichtCreationParameters& param)
 	#ifdef _DEBUG
 	setDebugName("CIrrDeviceSDL2");
 	#endif
+	os::Printer::log((core::stringc("SDL2: param.WindowSize=")+
+			core::stringc(param.WindowSize.Width)+"x"+
+			core::stringc(param.WindowSize.Height)).c_str(), ELL_INFORMATION);
 
 	// Initialize SDL... Timer for sleep, video for the obvious, and
 	// noparachute prevents SDL from catching fatal errors.
@@ -140,6 +143,9 @@ CIrrDeviceSDL2::CIrrDeviceSDL2(const SIrrlichtCreationParameters& param)
 
 	// create driver
 	createDriver();
+
+	os::Printer::log((core::stringc("SDL_HasScreenKeyboardSupport: ")+
+			(SDL_HasScreenKeyboardSupport()?"Yes":"No")).c_str(), ELL_INFORMATION);
 
 	if (VideoDriver)
 		createGUIAndScene();
@@ -408,6 +414,18 @@ bool CIrrDeviceSDL2::run()
 		case SDL_FINGERUP:
 		case SDL_FINGERMOTION:
 			{
+#ifdef _IRR_LANDSCAPE_HACK_
+				{
+					int x = sdlevent.tfinger.x;
+					int y = sdlevent.tfinger.y;
+					sdlevent.tfinger.x = y;
+					sdlevent.tfinger.y = Width - 1 - x;
+					int dx = sdlevent.tfinger.dx;
+					int dy = sdlevent.tfinger.dy;
+					sdlevent.tfinger.dx = dy;
+					sdlevent.tfinger.dy = -dx;
+				}
+#endif
 				// TODO: Implement properly
 				irrevent.EventType = EET_MULTI_TOUCH_EVENT;
 				irrevent.MultiTouchInput.clear();
@@ -611,6 +629,7 @@ bool CIrrDeviceSDL2::run()
 			case SDL_WINDOWEVENT_MOVED:
 				break;
 			case SDL_WINDOWEVENT_RESIZED:
+				os::Printer::log("SDL2: SDL_WINDOWEVENT_RESIZED", ELL_INFORMATION);
 				// NOTE: Can be other window
 				Width = sdlevent.window.data1;
 				Height = sdlevent.window.data2;
